@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ==========================================
-# 🦊 WIBU MONITOR - MASTER SCRIPT (PREMIUM LAYOUT)
+# 🦊 WIBU MONITOR - MASTER SCRIPT (FINAL PREMIUM)
 # ==========================================
 
-# 1. VALIDASI IP (SATPAM)
+# 1. VALIDASI IP (SATPAM) + SIMPAN DATA LOKAL
 URL_IZIN_IP="https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/ip_allowed.txt"
 IP_SEKARANG=$(curl -s ifconfig.me)
 DAFTAR_IP=$(curl -s "$URL_IZIN_IP")
@@ -13,6 +13,9 @@ if ! echo "$DAFTAR_IP" | grep -q -w "$IP_SEKARANG"; then
     echo "❌ ERROR: IP ($IP_SEKARANG) Tidak Terdaftar di GitHub!"
     exit 1
 fi
+
+# Menyimpan daftar whitelist IP ke penyimpanan lokal agar API Python tidak memblokir Node (Anti-403)
+echo "$DAFTAR_IP" > /root/ip_allowed.txt
 
 # 2. SETUP BOT & NAMA MASTER
 CONF_FILE="/root/.wibu_bot.conf"
@@ -27,6 +30,10 @@ if [ ! -f "$CONF_FILE" ]; then
 fi
 source "$CONF_FILE"
 MSG_ID_FILE="/root/.wibu_msg_id"
+
+# 🛡️ BUKA FIREWALL PORT 5000 (Agar Node Bebas Mengirim Laporan)
+iptables -I INPUT -p tcp --dport 5000 -j ACCEPT &> /dev/null
+if command -v ufw &> /dev/null; then ufw allow 5000/tcp &> /dev/null; fi
 
 # 3. SETUP API SERVER (PYTHON FLASK)
 apt update -y &> /dev/null
@@ -59,8 +66,10 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 EOF
 
-pkill -f api_server.py &> /dev/null
-nohup python3 /root/api_server.py > /dev/null 2>&1 &
+if ! pgrep -f "api_server.py" > /dev/null; then
+    pkill -f api_server.py &> /dev/null
+    nohup python3 /root/api_server.py > /dev/null 2>&1 &
+fi
 
 # 4. GATHER DATA VPS MASTER
 INTERFACE=$(ip route | awk '/default/ {print $5}' | head -n1)
