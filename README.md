@@ -20,16 +20,16 @@ VPS Master berfungsi sebagai server pusat yang menerima laporan dari semua VPS N
 
 Jalankan perintah ini di VPS Master kamu:
 ```bash
-wget -O /root/wibu_master.sh [https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh](https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh) && chmod +x /root/wibu_master.sh && /root/wibu_master.sh
+wget -O /root/wibu_master.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh && chmod +x /root/wibu_master.sh && /root/wibu_master.sh
 ```
 *Ikuti instruksi di layar untuk memasukkan **Bot Token**, **Chat ID Telegram**, dan **Nama Server Master**.*
 
 ### 2. Setup di VPS NODE (Cabang / Anggota)
 Jalankan perintah ini di setiap VPS anak/cabang yang ingin kamu monitor:
 ```bash
-wget -O /root/wibu_node.sh [https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh](https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh) && chmod +x /root/wibu_node.sh && /root/wibu_node.sh [IP_MASTER] "[NAMA_SERVER_NODE]"
+wget -O /root/wibu_node.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh && chmod +x /root/wibu_node.sh && /root/wibu_node.sh 103.253.245.205 "SG 1"
 ```
-> 💡 *Contoh penggunaan:* `/root/wibu_node.sh 103.253.245.205 "SG 1"`
+> 💡 *Contoh penggunaan:* `/root/wibu_node.sh 192.168.1.1 "SERVER 1"`
 
 ---
 
