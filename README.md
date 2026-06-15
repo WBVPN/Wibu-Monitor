@@ -1,16 +1,32 @@
-# 🦊 Wibu Monitor - Multi VPS Centered Dashboard
+# 🦊 Wibu Monitor - Auto Deploy Dashboard
 
-Sistem monitoring performa, spesifikasi, dan traffic data server VPN terpusat (Master-Node) berbasis HTTP API Server. Sistem ini mengintegrasikan laporan dari banyak VPS (Multi-Server) ke dalam **satu pesan Telegram yang sama** secara real-time dan diperbarui otomatis setiap 60 detik.
-
----
-
-## 🔒 Sistem Keamanan (IP Authorization)
-Script ini dilindungi oleh fitur **Auth IP Security**. Pastikan IP Publik dari VPS Master maupun semua VPS Node sudah didaftarkan terlebih dahulu ke dalam file `ip_allowed.txt` di repository ini. Jika IP tidak terdaftar, sistem keamanan akan otomatis membatalkan proses instalasi demi melindungi privasi server Anda.
+Sistem monitoring performa server VPN terpusat (Master-Node) berbasis API. 
+Sangat praktis! Script ini sudah dilengkapi fitur **Auto-Cronjob, Auto-Domain Detection, dan Auto-Open Firewall Port 5000**.
 
 ---
 
-## 👑 1. Panduan Instalasi di VPS MASTER (Pusat)
-VPS Master adalah server utama yang bertugas membuka API Server pada Port `5000` untuk menerima setoran data dari seluruh VPS Node, mengolahnya, lalu mengirim/mengedit pesan ke Channel atau Grup Telegram. Script ini sudah dilengkapi pencari jalur otomatis untuk membuka firewall sistem.
+### 👑 1. Instalasi di VPS MASTER (Pusat)
+Jalankan satu baris perintah ini di VPS Master Anda. (Script akan otomatis membuka firewall dan memasang jadwal cron).
+
+```bash
+wget -O /root/wibu_master.sh [https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh](https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh) && chmod +x /root/wibu_master.sh && /root/wibu_master.sh
+```
+
+---
+
+### 📡 2. Instalasi di VPS NODE (Cabang Ke-2, 3, dst)
+Jalankan satu baris perintah ini di VPS Node Anda. Ganti `IP_MASTER` dengan IP VPS Master Anda, dan `"NAMA SERVER"` dengan nama VPS cabang Anda.
+
+```bash
+wget -O /root/wibu_node.sh [https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh](https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh) && chmod +x /root/wibu_node.sh && /root/wibu_node.sh IP_MASTER "NAMA SERVER"
+```
+
+*(Catatan: Jika server Node belum memiliki catatan domain, script akan otomatis menghentikan proses sejenak untuk meminta Anda mengetikkan domain di terminal).*
+
+---
+
+### 🔒 Syarat Keamanan:
+Pastikan IP Publik dari VPS Master maupun semua VPS Node sudah didaftarkan ke dalam file `ip_allowed.txt` sebelum instalasi dilakukan.
 
 Jalankan perintah berikut di **VPS MASTER** Anda:
 ```bash
