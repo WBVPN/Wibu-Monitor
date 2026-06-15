@@ -9,7 +9,7 @@ Sangat praktis! Script ini sudah dilengkapi fitur **Auto-Config Telegram, Auto-C
 Jalankan satu baris perintah ini di VPS Master Anda. 
 
 ```bash
-wget -O /root/wibu_master.sh [https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh](https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh) && chmod +x /root/wibu_master.sh && /root/wibu_master.sh
+wget -O /root/wibu_master.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/master.sh && chmod +x /root/wibu_master.sh && /root/wibu_master.sh
 ```
 *(Catatan: Saat pertama kali dijalankan, script akan meminta Anda memasukkan **Bot Token** dan **Chat ID Telegram**. Setelah diisi, jadwal cron dan firewall akan terpasang otomatis).*
 
