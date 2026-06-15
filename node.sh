@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==========================================
-# 🦊 WIBU MONITOR - NODE SCRIPT
+# 🦊 WIBU MONITOR - NODE SCRIPT (PREMIUM LAYOUT)
 # ==========================================
 
 MASTER_IP=$1
@@ -35,14 +35,14 @@ TX=$(echo "$SPEED_TEST" | grep "tx" | awk '{print $2}')
 BW_TODAY=$(vnstat -i $INTERFACE --oneline 2>/dev/null | awk -F';' '{print $6}')
 BW_MONTH=$(vnstat -i $INTERFACE --oneline 2>/dev/null | awk -F';' '{print $11}')
 
-STATUS=$(pgrep -x "xray" > /dev/null && echo "🟢 ACTIVE" || echo "🔴 CRITICAL")
+STATUS=$(pgrep -x "xray" > /dev/null && echo "🟢 <b>ACTIVE</b>" || echo "🔴 <b>CRITICAL</b>")
 
 DATA=" ┣ 🌐 <b>Domain :</b> <code>$DOMAIN_MASKED</code>
  ┣ 🔌 <b>IPv4   :</b> <code>$IP_MASKED</code>
  ┣ 🏙️ <b>Lokasi :</b> $CITY (Auto)
  ┣ ⏳ <b>Uptime :</b> $UPTIME_FMT
  ┣ 🚀 <b>Speed  :</b> <code>$RX ↓ / $TX ↑ Mbps</code>
- ┣ 📊 <b>Traffic:</b> Hari Ini: $BW_TODAY | Bulan: $BW_MONTH
+ ┣ 📊 <b>Traffic :</b> Hari Ini: $BW_TODAY | Bulan: $BW_MONTH
  ┗ 🛡️ <b>Status :</b> $STATUS"
 
 curl -s -X POST "http://$MASTER_IP:5000/api/report" -d "name=$VPS_NAME" -d "data=$DATA" > /dev/null
