@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==========================================
-# 🦊 WIBU MONITOR - MASTER SCRIPT (CLEAN)
+# 🦊 WIBU MONITOR - MASTER SCRIPT (PREMIUM LAYOUT)
 # ==========================================
 
 # 1. VALIDASI IP (SATPAM)
@@ -20,7 +20,7 @@ if [ ! -f "$CONF_FILE" ]; then
     echo "=== SETUP MASTER MONITORING ==="
     read -p "Masukkan Bot Token : " INP_TOKEN
     read -p "Masukkan Chat ID   : " INP_CHATID
-    read -p "Beri Nama VPS Master ini (misal: PUSAT-ID): " INP_NAME
+    read -p "Beri Nama VPS Master ini (misal: MASTER): " INP_NAME
     echo "BOT_TOKEN=\"$INP_TOKEN\"" > "$CONF_FILE"
     echo "CHAT_ID=\"$INP_CHATID\"" >> "$CONF_FILE"
     echo "MASTER_NAME=\"$INP_NAME\"" >> "$CONF_FILE"
@@ -67,18 +67,33 @@ INTERFACE=$(ip route | awk '/default/ {print $5}' | head -n1)
 DOMAIN=$(cat /etc/xray/domain 2>/dev/null || cat /root/domain 2>/dev/null || hostname -f)
 IP_MASKED=$(echo "$IP_SEKARANG" | awk -F. '{print $1"."substr($2,1,2)"*.***.**"}')
 DOMAIN_MASKED=$(echo "$DOMAIN" | awk -F. '{print $1"."substr($2,1,6)"**.***.**"}')
+
+GEO_DATA=$(curl -s http://ip-api.com/json/$IP_SEKARANG)
+CITY=$(echo "$GEO_DATA" | grep -o '"city":"[^"]*' | cut -d'"' -f4)
+[ -z "$CITY" ] && CITY="Jakarta"
+
+UPTIME_RAW=$(cat /proc/uptime | awk '{print $1}')
+UPTIME_FMT=$(printf "%02d Jam, %02d Menit" $(awk "BEGIN {print int($UPTIME_RAW/3600)}") $(awk "BEGIN {print int(($UPTIME_RAW%3600)/60)}"))
+
 SPEED_TEST=$(vnstat -tr 2 -i $INTERFACE 2>/dev/null)
 RX=$(echo "$SPEED_TEST" | grep "rx" | awk '{print $2}')
 TX=$(echo "$SPEED_TEST" | grep "tx" | awk '{print $2}')
-STATUS=$(pgrep -x "xray" > /dev/null && echo "🟢 ACTIVE" || echo "🔴 CRITICAL")
+
+BW_TODAY=$(vnstat -i $INTERFACE --oneline 2>/dev/null | awk -F';' '{print $6}')
+BW_MONTH=$(vnstat -i $INTERFACE --oneline 2>/dev/null | awk -F';' '{print $11}')
+
+STATUS=$(pgrep -x "xray" > /dev/null && echo "🟢 <b>ACTIVE</b>" || echo "🔴 <b>CRITICAL</b>")
 
 TEXT="🦊 <b>WIBU SERVER REAL MONITORING</b> 🦊
 ════════════════════════════
 👑 <b>SERVER : ${MASTER_NAME^^}</b>
  ┣ 🌐 <b>Domain :</b> <code>$DOMAIN_MASKED</code>
  ┣ 🔌 <b>IPv4   :</b> <code>$IP_MASKED</code>
+ ┣ 🏙️ <b>Lokasi :</b> $CITY (Auto)
+ ┣ ⏳ <b>Uptime :</b> $UPTIME_FMT
  ┣ 🚀 <b>Speed  :</b> <code>$RX ↓ / $TX ↑ Mbps</code>
- ┣ 🛡️ <b>Status :</b> $STATUS"
+ ┣ 📊 <b>Traffic :</b> Hari Ini: $BW_TODAY | Bulan: $BW_MONTH
+ ┗ 🛡️ <b>Status :</b> $STATUS"
 
 # 5. AUTO-CLEANUP & GABUNGKAN DATA (DURASI 5 MENIT)
 CURRENT_TIME=$(date +%s)
@@ -100,7 +115,8 @@ done
 
 TEXT="$TEXT
 ════════════════════════════
-⏱️ <b>Update :</b> <i>$(date '+%d %b %Y, %H:%M:%S')</i>"
+⏱️ <b>Sinkronisasi :</b> <i>$(date '+%d %b %Y, %H:%M:%S') WIB</i>
+🌸 <b>Data diperbarui otomatis setiap 60 detik.</b>"
 
 # 6. KIRIM / UPDATE TELEGRAM
 if [ -f "$MSG_ID_FILE" ]; then
