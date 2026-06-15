@@ -19,7 +19,7 @@ wget -O /root/wibu_master.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monito
 Jalankan satu baris perintah ini di VPS Node Anda. Ganti `IP_MASTER` dengan IP VPS Master Anda, dan `"NAMA SERVER"` dengan nama VPS cabang Anda.
 
 ```bash
-wget -O /root/wibu_node.sh [https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh](https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh) && chmod +x /root/wibu_node.sh && /root/wibu_node.sh IP_MASTER "NAMA SERVER"
+wget -O /root/wibu_node.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/node.sh && chmod +x /root/wibu_node.sh && /root/wibu_node.sh IP_MASTER "NAMA SERVER"
 ```
 *(Catatan: Jika server Node belum memiliki catatan domain, script akan meminta Anda mengetikkan domain di terminal sebelum menyelesaikan instalasi).*
 
