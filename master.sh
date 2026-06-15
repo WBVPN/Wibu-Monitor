@@ -1,8 +1,4 @@
 #!/bin/bash
-# ==========================================
-# 🦊 WIBU MONITOR - MASTER (FULL VERSION)
-# ==========================================
-
 URL_IZIN_IP="https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/ip_allowed.txt"
 IP_SEKARANG=$(curl -s ifconfig.me)
 DAFTAR_IP=$(curl -s "$URL_IZIN_IP")
@@ -17,7 +13,7 @@ if [ ! -f "$CONF_FILE" ]; then
     echo "=== SETUP MASTER MONITORING ==="
     read -p "Masukkan Bot Token : " INP_TOKEN
     read -p "Masukkan Chat ID   : " INP_CHATID
-    read -p "Beri Nama VPS Master ini (misal: PUSAT-ID): " INP_NAME
+    read -p "Beri Nama VPS Master ini : " INP_NAME
     echo "BOT_TOKEN=\"$INP_TOKEN\"" > "$CONF_FILE"
     echo "CHAT_ID=\"$INP_CHATID\"" >> "$CONF_FILE"
     echo "MASTER_NAME=\"$INP_NAME\"" >> "$CONF_FILE"
@@ -34,6 +30,64 @@ def get_allowed_ips():
     try:
         with open("/root/ip_allowed.txt", "r") as f:
             return [line.strip() for line in f if line.strip()]
+    except: return []
+@app.route('/api/report', methods=['POST'])
+def report():
+    if request.remote_addr not in get_allowed_ips(): return "Forbidden", 403
+    vps_name = request.form.get('name', 'unknown')
+    vps_data = request.form.get('data', '')
+    if vps_data:
+        with open(f"/root/node_{vps_name}.txt", "w") as f: f.write(vps_data)
+        return "OK", 200
+    return "No Data", 400
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+END_PYTHON
+
+pkill -f api_server.py &> /dev/null
+nohup python3 /root/api_server.py > /dev/null 2>&1 &
+
+INTERFACE=$(ip route | awk '/default/ {print $5}' | head -n1)
+SPEED_TEST=$(vnstat -tr 2 -i $INTERFACE 2>/dev/null)
+RX=$(echo "$SPEED_TEST" | grep "rx" | awk '{print $2}')
+TX=$(echo "$SPEED_TEST" | grep "tx" | awk '{print $2}')
+STATUS=$(pgrep -x "xray" > /dev/null && echo "🟢 ACTIVE" || echo "🔴 CRITICAL")
+
+TEXT="🦊 <b>WIBU MONITOR</b> 🦊
+👑 <b>SERVER : ${MASTER_NAME^^}</b>
+🚀 <b>Speed :</b> $RX ↓ / $TX ↑ Mbps
+🛡️ <b>Status :</b> $STATUS"
+
+CURRENT_TIME=$(date +%s)
+for file in /root/node_*.txt; do
+    if [ -f "$file" ]; then
+        if [ $((CURRENT_TIME - $(stat -c %Y "$file"))) -gt 300 ]; then
+            rm "$file"
+        else
+            NODE_NAME=$(basename "$file" .txt | sed 's/node_//')
+            TEXT="$TEXT
+
+👑 <b>SERVER : ${NODE_NAME^^}</b>
+$(cat "$file")"
+        fi
+    fi
+done
+
+TEXT="$TEXT
+⏱️ <b>Update :</b> <i>$(date '+%d %b %Y, %H:%M:%S')</i>"
+
+if [ -f "$MSG_ID_FILE" ]; then
+    MSG_ID=$(cat "$MSG_ID_FILE")
+    curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/editMessageText" -d chat_id="$CHAT_ID" -d message_id="$MSG_ID" --data-urlencode "text=$TEXT" -d parse_mode="HTML" > /dev/null
+else
+    RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" -d chat_id="$CHAT_ID" --data-urlencode "text=$TEXT" -d parse_mode="HTML")
+    MSG_ID=$(echo "$RESPONSE" | grep -o '"message_id":[0-9]*' | cut -d':' -f2)
+    [[ "$MSG_ID" =~ ^[0-9]+$ ]] && echo "$MSG_ID" > "$MSG_ID_FILE"
+fi
+
+if ! crontab -l 2>/dev/null | grep -q "wibu_master.sh"; then
+    (crontab -l 2>/dev/null; echo "* * * * * /root/wibu_master.sh") | crontab -
+fi
     except: return []
 @app.route('/api/report', methods=['POST'])
 def report():
