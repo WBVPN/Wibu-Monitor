@@ -20,13 +20,18 @@ echo "$DAFTAR_IP" > /root/ip_allowed.txt
 # 2. SETUP BOT & NAMA MASTER
 CONF_FILE="/root/.wibu_bot.conf"
 if [ ! -f "$CONF_FILE" ]; then
-    echo "=== SETUP MASTER MONITORING ==="
-    read -p "Masukkan Bot Token : " INP_TOKEN
-    read -p "Masukkan Chat ID   : " INP_CHATID
-    read -p "Beri Nama VPS Master ini (misal: MASTER): " INP_NAME
-    echo "BOT_TOKEN=\"$INP_TOKEN\"" > "$CONF_FILE"
-    echo "CHAT_ID=\"$INP_CHATID\"" >> "$CONF_FILE"
-    echo "MASTER_NAME=\"$INP_NAME\"" >> "$CONF_FILE"
+    if [ -t 0 ]; then
+        echo "=== SETUP MASTER MONITORING ==="
+        read -p "Masukkan Bot Token : " INP_TOKEN
+        read -p "Masukkan Chat ID   : " INP_CHATID
+        read -p "Beri Nama VPS Master ini (misal: MASTER): " INP_NAME
+        echo "BOT_TOKEN=\"$INP_TOKEN\"" > "$CONF_FILE"
+        echo "CHAT_ID=\"$INP_CHATID\"" >> "$CONF_FILE"
+        echo "MASTER_NAME=\"$INP_NAME\"" >> "$CONF_FILE"
+    else
+        echo "Config missing. Cannot setup in background."
+        exit 1
+    fi
 fi
 source "$CONF_FILE"
 MSG_ID_FILE="/root/.wibu_msg_id"
@@ -36,8 +41,10 @@ iptables -I INPUT -p tcp --dport 5000 -j ACCEPT &> /dev/null
 if command -v ufw &> /dev/null; then ufw allow 5000/tcp &> /dev/null; fi
 
 # 3. SETUP API SERVER (PYTHON FLASK)
-apt update -y &> /dev/null
-apt install python3 python3-flask vnstat -y &> /dev/null
+if ! command -v python3 &> /dev/null || ! dpkg -l | grep -q python3-flask || ! command -v vnstat &> /dev/null; then
+    apt update -y &> /dev/null
+    apt install python3 python3-flask vnstat -y &> /dev/null
+fi
 
 cat << 'EOF' > /root/api_server.py
 from flask import Flask, request

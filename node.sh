@@ -12,8 +12,10 @@ if [ -z "$MASTER_IP" ] || [ -z "$VPS_NAME" ]; then
     exit 1
 fi
 
-apt update -y &> /dev/null
-apt install vnstat -y &> /dev/null
+if ! command -v vnstat &> /dev/null; then
+    apt update -y &> /dev/null
+    apt install vnstat -y &> /dev/null
+fi
 
 INTERFACE=$(ip route | awk '/default/ {print $5}' | head -n1)
 DOMAIN=$(cat /etc/xray/domain 2>/dev/null || cat /root/domain 2>/dev/null || hostname -f)
