@@ -46,6 +46,7 @@ if ! command -v python3 &> /dev/null || ! dpkg -l | grep -q python3-flask || ! c
     apt install python3 python3-flask vnstat -y &> /dev/null
 fi
 
+if [ ! -f /root/api_server.py ] || ! grep -q "re.sub" /root/api_server.py; then
 cat << 'EOF' > /root/api_server.py
 from flask import Flask, request
 app = Flask(__name__)
@@ -62,8 +63,10 @@ def report():
     if request.remote_addr not in get_allowed_ips():
         return "Forbidden", 403
     vps_name = request.form.get('name', 'unknown')
+    import re
+    vps_name = re.sub(r'[^a-zA-Z0-9_\- ]', '', vps_name)
     vps_data = request.form.get('data', '')
-    if vps_data:
+    if vps_data and vps_name:
         with open(f"/root/node_{vps_name}.txt", "w") as f:
             f.write(vps_data)
         return "OK", 200
@@ -72,6 +75,8 @@ def report():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 EOF
+    pkill -f api_server.py &> /dev/null
+fi
 
 if ! pgrep -f "api_server.py" > /dev/null; then
     pkill -f api_server.py &> /dev/null
@@ -142,7 +147,7 @@ if [ -f "$MSG_ID_FILE" ]; then
         -d message_id="$MSG_ID" \
         --data-urlencode "text=$TEXT" \
         -d parse_mode="HTML")
-    if echo "$RESPONSE" | grep -q '"ok":false'; then
+    if echo "$RESPONSE" | grep -q 'message to edit not found'; then
         rm -f "$MSG_ID_FILE"
     fi
 else
@@ -157,6 +162,7 @@ else
 fi
 
 # 7. CRONJOB
-if ! crontab -l 2>/dev/null | grep -q "wibu_master.sh"; then
-    (crontab -l 2>/dev/null; echo "* * * * * /root/wibu_master.sh") | crontab -
+SCRIPT_PATH=$(realpath "$0")
+if ! crontab -l 2>/dev/null | grep -q "$SCRIPT_PATH"; then
+    (crontab -l 2>/dev/null; echo "* * * * * $SCRIPT_PATH") | crontab -
 fi
