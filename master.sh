@@ -137,11 +137,14 @@ TEXT="$TEXT
 # 6. KIRIM / UPDATE TELEGRAM
 if [ -f "$MSG_ID_FILE" ]; then
     MSG_ID=$(cat "$MSG_ID_FILE")
-    curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/editMessageText" \
+    RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/editMessageText" \
         -d chat_id="$CHAT_ID" \
         -d message_id="$MSG_ID" \
         --data-urlencode "text=$TEXT" \
-        -d parse_mode="HTML" > /dev/null
+        -d parse_mode="HTML")
+    if echo "$RESPONSE" | grep -q '"ok":false'; then
+        rm -f "$MSG_ID_FILE"
+    fi
 else
     RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
         -d chat_id="$CHAT_ID" \
