@@ -4,8 +4,7 @@
 # 🦊 WIBU MONITOR - MASTER SCRIPT (FINAL PREMIUM)
 # ==========================================
 
-# 1. VALIDASI IP (SATPAM) + SIMPAN DATA LOKAL
-URL_IZIN_IP="https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/refs/heads/main/ip_allowed.txt"
+# 1. DETECT IP (For display only)
 IP_SEKARANG=$(curl -s --connect-timeout 5 --max-time 10 ifconfig.me)
 if [ -z "$IP_SEKARANG" ]; then
     IP_SEKARANG=$(curl -s --connect-timeout 5 --max-time 10 icanhazip.com)
@@ -15,35 +14,64 @@ if [ -z "$IP_SEKARANG" ]; then
     exit 1
 fi
 
-DAFTAR_IP=$(curl -s --connect-timeout 5 --max-time 10 "$URL_IZIN_IP")
-if [ -z "$DAFTAR_IP" ]; then
-    echo "❌ ERROR: Cannot fetch whitelist (GitHub unreachable)"
-    exit 1
-fi
-
-if ! echo "$DAFTAR_IP" | grep -q -w "$IP_SEKARANG"; then
-    echo "❌ ERROR: IP ($IP_SEKARANG) Tidak Terdaftar di GitHub!"
-    exit 1
-fi
-
-# Menyimpan daftar whitelist IP ke penyimpanan lokal agar API Python tidak memblokir Node (Anti-403)
-echo "$DAFTAR_IP" > /root/ip_allowed.txt
-
-# 2. SETUP BOT & NAMA MASTER (atomic config write)
+# 2. SETUP BOT & NAMA MASTER (atomic config write with API key)
 CONF_FILE="/root/.wibu_bot.conf"
 if [ ! -f "$CONF_FILE" ]; then
     if [ -t 0 ]; then
-        echo "=== SETUP MASTER MONITORING ==="
-        read -p "Masukkan Bot Token : " INP_TOKEN
-        read -p "Masukkan Chat ID   : " INP_CHATID
-        read -p "Beri Nama VPS Master ini (misal: MASTER): " INP_NAME
+        clear
+        echo "╔════════════════════════════════════════╗"
+        echo "║   🦊 WIBU MONITOR - MASTER SETUP      ║"
+        echo "╚════════════════════════════════════════╝"
+        echo ""
+        read -p "Bot Token  : " INP_TOKEN
+        read -p "Chat ID    : " INP_CHATID
+        read -p "Server Name: " INP_NAME
+        
+        echo ""
+        echo "⏳ Generating secure API key..."
+        
+        # Generate unique API key (32 char hex)
+        API_KEY=$(openssl rand -hex 16)
         
         CONF_TEMP=$(mktemp)
         trap "rm -f $CONF_TEMP" EXIT
         echo "BOT_TOKEN=\"$INP_TOKEN\"" > "$CONF_TEMP"
         echo "CHAT_ID=\"$INP_CHATID\"" >> "$CONF_TEMP"
         echo "MASTER_NAME=\"$INP_NAME\"" >> "$CONF_TEMP"
+        echo "API_KEY=\"$API_KEY\"" >> "$CONF_TEMP"
         mv "$CONF_TEMP" "$CONF_FILE"
+        
+        echo ""
+        echo "✅ Setup Complete!"
+        echo ""
+        echo "╔════════════════════════════════════════╗"
+        echo "║          CONFIGURATION                 ║"
+        echo "╠════════════════════════════════════════╣"
+        echo "║ Master Name: $INP_NAME"
+        echo "║ Chat ID    : $INP_CHATID"
+        echo "╠════════════════════════════════════════╣"
+        echo "║ 🔑 API KEY (SAVE THIS!)               ║"
+        echo "║                                        ║"
+        echo "║ $API_KEY ║"
+        echo "╚════════════════════════════════════════╝"
+        echo ""
+        echo "📝 Copy API key untuk install node!"
+        echo ""
+        
+        # Send API key via Telegram
+        curl -s -X POST "https://api.telegram.org/bot$INP_TOKEN/sendMessage" \
+            -d chat_id="$INP_CHATID" \
+            -d parse_mode="HTML" \
+            --data-urlencode text="🔑 <b>Master Setup Complete</b>
+
+<b>Server:</b> $INP_NAME
+<b>API Key:</b> <code>$API_KEY</code>
+
+Use this key when installing nodes." > /dev/null 2>&1
+        
+        echo "✉️  API key juga dikirim ke Telegram!"
+        echo ""
+        sleep 3
     else
         echo "Config missing. Cannot setup in background."
         exit 1
@@ -56,7 +84,7 @@ MSG_ID_FILE="/root/.wibu_msg_id"
 iptables -I INPUT -p tcp --dport 5000 -j ACCEPT &> /dev/null
 if command -v ufw &> /dev/null; then ufw allow 5000/tcp &> /dev/null; fi
 
-# 3. SETUP API SERVER (PYTHON FLASK) - Enhanced Security
+# 3. SETUP API SERVER (PYTHON FLASK) - API Key Authentication
 if ! command -v python3 &> /dev/null || ! command -v vnstat &> /dev/null; then
     if ! dpkg -l 2>/dev/null | grep -qE 'python3.*ii'; then
         apt update -y &> /dev/null
@@ -65,10 +93,6 @@ if ! command -v python3 &> /dev/null || ! command -v vnstat &> /dev/null; then
     fi
 fi
 
-API_CHECKSUM="b8f9c3e7a2d1f5e4"
-CURRENT_CHECKSUM=$(md5sum /root/api_server.py 2>/dev/null | awk '{print $1}')
-
-if [ "$CURRENT_CHECKSUM" != "$API_CHECKSUM" ]; then
 cat << 'EOF' > /root/api_server.py
 from flask import Flask, request
 from flask_limiter import Limiter
@@ -92,21 +116,28 @@ limiter = Limiter(
 node_cache = {}
 CACHE_TTL = 55  # seconds
 
-def get_allowed_ips():
+def get_api_key():
+    """Read API key from master config"""
     try:
-        with open("/root/ip_allowed.txt", "r") as f:
-            return [line.strip() for line in f if line.strip()]
+        with open("/root/.wibu_bot.conf", "r") as f:
+            for line in f:
+                if line.startswith("API_KEY"):
+                    return line.split('"')[1]
     except:
-        return []
+        return None
 
 @app.route('/api/report', methods=['POST'])
 @limiter.limit("30 per minute")
 def report():
-    if request.remote_addr not in get_allowed_ips():
-        return "Forbidden", 403
+    # Validate API key (replace IP whitelist)
+    provided_key = request.headers.get('X-API-Key')
+    expected_key = get_api_key()
+    
+    if not provided_key or provided_key != expected_key:
+        return "Forbidden - Invalid API Key", 403
     
     vps_name = request.form.get('name', 'unknown')
-    # Strict sanitization: alphanumeric, underscore, dash only (no spaces)
+    # Strict sanitization: alphanumeric, underscore, dash only
     vps_name = re.sub(r'[^a-zA-Z0-9_-]', '', vps_name)
     if not vps_name or len(vps_name) > 50:
         return "Invalid name", 400
@@ -115,7 +146,7 @@ def report():
     if not vps_data or len(vps_data) > 90000:  # 90KB text limit
         return "Invalid data", 400
     
-    # Update memory cache + disk (async-like)
+    # Update memory cache + disk
     node_cache[vps_name] = {'data': vps_data, 'time': time.time()}
     
     # Atomic write with temp file
@@ -134,8 +165,7 @@ def report():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 EOF
-    pkill -f api_server.py &> /dev/null
-fi
+pkill -f api_server.py &> /dev/null
 
 if ! pgrep -f "api_server.py" > /dev/null; then
     pkill -f api_server.py &> /dev/null

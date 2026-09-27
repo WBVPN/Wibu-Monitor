@@ -1,14 +1,49 @@
 #!/bin/bash
 
 # ==========================================
-# 🦊 WIBU MONITOR - NODE SCRIPT (PREMIUM LAYOUT)
+# 🦊 WIBU MONITOR - NODE SCRIPT (API KEY AUTH)
 # ==========================================
 
 MASTER_IP=$1
 VPS_NAME=$2
+API_KEY=$3
 
-if [ -z "$MASTER_IP" ] || [ -z "$VPS_NAME" ]; then
-    echo "❌ Cara pakai: ./wibu_node.sh [IP_MASTER] [NAMA_VPS]"
+if [ -z "$MASTER_IP" ] || [ -z "$VPS_NAME" ] || [ -z "$API_KEY" ]; then
+    clear
+    echo "╔════════════════════════════════════════╗"
+    echo "║   🦊 WIBU MONITOR - NODE SETUP        ║"
+    echo "╚════════════════════════════════════════╝"
+    echo ""
+    echo "❌ Usage: $0 [MASTER_IP] [NODE_NAME] [API_KEY]"
+    echo ""
+    echo "Example:"
+    echo "  $0 103.253.245.1 SG-NODE-1 a1b2c3d4e5f6..."
+    echo ""
+    echo "💡 Get API key from master setup output."
+    exit 1
+fi
+
+echo "⏳ Testing connection to master..."
+
+# Test API key validity
+TEST_RESPONSE=$(curl -s -w "\n%{http_code}" \
+    --connect-timeout 5 --max-time 10 \
+    -H "X-API-Key: $API_KEY" \
+    -X POST "http://$MASTER_IP:5000/api/report" \
+    -d "name=test" \
+    -d "data=test" 2>/dev/null)
+
+HTTP_CODE=$(echo "$TEST_RESPONSE" | tail -n1)
+
+if [ "$HTTP_CODE" = "200" ]; then
+    echo "✅ API key valid! Installing..."
+    echo ""
+elif [ "$HTTP_CODE" = "403" ]; then
+    echo "❌ Invalid API key! Check your key and try again."
+    exit 1
+else
+    echo "⚠️  Cannot reach master (HTTP $HTTP_CODE)"
+    echo "   Make sure master is running and port 5000 is open."
     exit 1
 fi
 
@@ -75,11 +110,23 @@ DATA=" ┣ 🌐 <b>Domain :</b> <code>$DOMAIN_MASKED</code>
  ┣ 📊 <b>Traffic :</b> Hari Ini: $BW_TODAY | Bulan: $BW_MONTH
  ┗ 🛡️ <b>Status :</b> $STATUS"
 
-curl -s --connect-timeout 5 --max-time 10 -X POST "http://$MASTER_IP:5000/api/report" -d "name=$VPS_NAME" -d "data=$DATA" > /dev/null 2>&1
+curl -s --connect-timeout 5 --max-time 10 \
+    -H "X-API-Key: $API_KEY" \
+    -X POST "http://$MASTER_IP:5000/api/report" \
+    -d "name=$VPS_NAME" \
+    -d "data=$DATA" > /dev/null 2>&1
 
-CRON_ENTRY="* * * * * /root/wibu_node.sh $MASTER_IP '$VPS_NAME'"
+# Save config for cron
+echo "MASTER_IP=$MASTER_IP" > /root/.wibu_node.conf
+echo "VPS_NAME=$VPS_NAME" >> /root/.wibu_node.conf
+echo "API_KEY=$API_KEY" >> /root/.wibu_node.conf
+
+CRON_ENTRY="* * * * * /root/wibu_node.sh $MASTER_IP '$VPS_NAME' '$API_KEY'"
 CRON_TEMP=$(mktemp)
 crontab -l 2>/dev/null | grep -v "wibu_node.sh" > "$CRON_TEMP"
 echo "$CRON_ENTRY" >> "$CRON_TEMP"
 crontab "$CRON_TEMP"
 rm -f "$CRON_TEMP"
+
+echo "✅ Node installed successfully!"
+echo "📊 Monitoring active - check your Telegram bot."
