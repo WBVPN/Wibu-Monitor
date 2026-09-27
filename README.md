@@ -110,7 +110,7 @@
 
 ```bash
 # Download pre-compiled binary
-wget https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/wibu_master
+wget https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/bin/wibu_master
 chmod +x wibu_master
 ./wibu_master
 ```
@@ -128,7 +128,7 @@ chmod +x wibu_master
 
 ```bash
 # Download pre-compiled binary
-wget https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/wibu_node
+wget https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/bin/wibu_node
 chmod +x wibu_node
 ./wibu_node [MASTER_IP] [NODE_NAME] [API_KEY]
 ```
