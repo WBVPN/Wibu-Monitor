@@ -218,7 +218,7 @@ BW_MONTH=$(echo "$VNSTAT_DATA" | awk -F';' '{print $11}')
 
 STATUS=$(pgrep -f "xray" > /dev/null && echo "🟢 <b>ACTIVE</b>" || echo "🔴 <b>CRITICAL</b>")
 
-TEXT="🦊 <b>WIBU SERVER REAL MONITORING</b> 🦊
+TEXT="🦊 <b>WIBU LIVE MONITOR</b> 🦊
 ════════════════════════════
 👑 <b>SERVER : ${MASTER_NAME^^}</b>
  ┣ 🌐 <b>Domain :</b> <code>$DOMAIN_MASKED</code>

@@ -1,4 +1,4 @@
-# 🦊 WIBU MONITOR - Multi-Server Realtime Monitoring Bot Telegram
+# 🦊 WIBU LIVE MONITOR - Multi-Server Realtime Monitoring Bot Telegram
 
 Script monitoring spesifikasi, performa, *speed*, *status service*, dan pemakaian *traffic/bandwidth* realtime untuk multi-server VPS (Master & Node) yang terintegrasi langsung dengan Bot Telegram.
 
@@ -84,7 +84,7 @@ wget -O /root/wibu_node.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/
 Setelah install, bot akan menampilkan monitoring realtime di Telegram:
 
 ```
-🦊 WIBU SERVER REAL MONITORING 🦊
+🦊 WIBU LIVE MONITOR 🦊
 ════════════════════════════
 👑 SERVER : MASTER
  ┣ 🌐 Domain : wibuvpn.priasa**.***.**
