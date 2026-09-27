@@ -109,9 +109,10 @@
 #### 1️⃣ Setup Master Server
 
 ```bash
-wget -O /root/wibu_master.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/master.sh
-chmod +x /root/wibu_master.sh
-./wibu_master.sh
+# Download pre-compiled binary
+wget https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/wibu_master
+chmod +x wibu_master
+./wibu_master
 ```
 
 **Output:**
@@ -126,14 +127,15 @@ chmod +x /root/wibu_master.sh
 #### 2️⃣ Setup Node Servers
 
 ```bash
-wget -O /root/wibu_node.sh https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/node.sh
-chmod +x /root/wibu_node.sh
-./wibu_node.sh [MASTER_IP] [NODE_NAME] [API_KEY]
+# Download pre-compiled binary
+wget https://raw.githubusercontent.com/WBVPN/Wibu-Monitor/main/wibu_node
+chmod +x wibu_node
+./wibu_node [MASTER_IP] [NODE_NAME] [API_KEY]
 ```
 
 **Example:**
 ```bash
-./wibu_node.sh 103.253.245.1 SG-NODE-1 a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+./wibu_node 103.253.245.1 SG-NODE-1 a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
 ```
 
 <div align="center">
@@ -141,6 +143,38 @@ chmod +x /root/wibu_node.sh
 **🎉 Done! Check your Telegram bot for live monitoring!**
 
 </div>
+
+---
+
+## 🔐 Security & Trust
+
+This project is **open source**! All binaries are compiled from source code available in the [`source/`](source/) folder.
+
+### Verify Binary Integrity
+
+You can compile from source yourself to verify integrity:
+
+```bash
+# Install compiler
+apt install shc -y
+
+# Clone repository
+git clone https://github.com/WBVPN/Wibu-Monitor
+cd Wibu-Monitor
+
+# Compile from source
+shc -f source/master.sh -o my_wibu_master
+shc -f source/node.sh -o my_wibu_node
+
+# Use your own compiled binaries
+./my_wibu_master
+```
+
+**Why pre-compiled binaries?**
+- ✅ **Convenience** - Download & run, no compilation needed
+- ✅ **Source Protection** - Code is obfuscated in binary form
+- ✅ **Trust** - Source code available for audit in `source/` folder
+- ✅ **Verified** - Compile yourself to verify authenticity
 
 ---
 
