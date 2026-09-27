@@ -13,31 +13,59 @@ if [ -z "$MASTER_IP" ] || [ -z "$VPS_NAME" ]; then
 fi
 
 if ! command -v vnstat &> /dev/null; then
-    apt update -y &> /dev/null
-    apt install vnstat -y &> /dev/null
+    if ! dpkg -l | grep -q vnstat; then
+        apt update -y &> /dev/null
+        apt install vnstat -y &> /dev/null
+    fi
 fi
 
 INTERFACE=$(ip route | awk '/default/ {print $5}' | head -n1)
+if [ -z "$INTERFACE" ]; then
+    INTERFACE=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]" {print $2;exit}' | xargs)
+fi
+[ -z "$INTERFACE" ] && INTERFACE="eth0"
+
 DOMAIN=$(cat /etc/xray/domain 2>/dev/null || cat /root/domain 2>/dev/null || hostname -f)
-IP=$(curl -s ifconfig.me)
+IP=$(curl -s --connect-timeout 5 --max-time 10 ifconfig.me)
+[ -z "$IP" ] && IP=$(curl -s --connect-timeout 5 --max-time 10 icanhazip.com)
+if [ -z "$IP" ]; then
+    echo "❌ Cannot detect IP"
+    exit 1
+fi
 IP_MASKED=$(echo "$IP" | awk -F. '{print $1"."substr($2,1,2)"*.***.**"}')
 DOMAIN_MASKED=$(echo "$DOMAIN" | awk -F. '{print $1"."substr($2,1,6)"**.***.**"}')
 
-GEO_DATA=$(curl -s http://ip-api.com/json/$IP)
-CITY=$(echo "$GEO_DATA" | grep -o '"city":"[^"]*' | cut -d'"' -f4)
-[ -z "$CITY" ] && CITY="Unknown"
+GEO_CACHE="/root/.wibu_geo_cache_node"
+if [ -f "$GEO_CACHE" ]; then
+    CACHE_AGE=$(($(date +%s) - $(stat -c %Y "$GEO_CACHE")))
+    if [ $CACHE_AGE -lt 86400 ]; then
+        CITY=$(cat "$GEO_CACHE")
+    fi
+fi
+
+if [ -z "$CITY" ]; then
+    GEO_DATA=$(curl -s --connect-timeout 5 --max-time 10 http://ip-api.com/json/$IP)
+    CITY=$(echo "$GEO_DATA" | grep -o '"city":"[^"]*' | cut -d'"' -f4)
+    [ -z "$CITY" ] && CITY="Unknown"
+    echo "$CITY" > "$GEO_CACHE"
+fi
 
 UPTIME_RAW=$(cat /proc/uptime | awk '{print $1}')
 UPTIME_FMT=$(printf "%02d Jam, %02d Menit" $(awk "BEGIN {print int($UPTIME_RAW/3600)}") $(awk "BEGIN {print int(($UPTIME_RAW%3600)/60)}"))
 
-SPEED_TEST=$(vnstat -tr 2 -i $INTERFACE 2>/dev/null)
+SPEED_TEST=$(vnstat -tr 1 -i $INTERFACE 2>/dev/null)
 RX=$(echo "$SPEED_TEST" | grep "rx" | awk '{print $2}')
 TX=$(echo "$SPEED_TEST" | grep "tx" | awk '{print $2}')
+[ -z "$RX" ] && RX="N/A"
+[ -z "$TX" ] && TX="N/A"
 
-BW_TODAY=$(vnstat -i $INTERFACE --oneline 2>/dev/null | awk -F';' '{print $6}')
-BW_MONTH=$(vnstat -i $INTERFACE --oneline 2>/dev/null | awk -F';' '{print $11}')
+VNSTAT_DATA=$(vnstat -i $INTERFACE --oneline 2>/dev/null)
+BW_TODAY=$(echo "$VNSTAT_DATA" | awk -F';' '{print $6}')
+BW_MONTH=$(echo "$VNSTAT_DATA" | awk -F';' '{print $11}')
+[ -z "$BW_TODAY" ] && BW_TODAY="N/A"
+[ -z "$BW_MONTH" ] && BW_MONTH="N/A"
 
-STATUS=$(pgrep -x "xray" > /dev/null && echo "🟢 <b>ACTIVE</b>" || echo "🔴 <b>CRITICAL</b>")
+STATUS=$(pgrep -f "xray" > /dev/null && echo "🟢 <b>ACTIVE</b>" || echo "🔴 <b>CRITICAL</b>")
 
 DATA=" ┣ 🌐 <b>Domain :</b> <code>$DOMAIN_MASKED</code>
  ┣ 🔌 <b>IPv4   :</b> <code>$IP_MASKED</code>
@@ -47,8 +75,11 @@ DATA=" ┣ 🌐 <b>Domain :</b> <code>$DOMAIN_MASKED</code>
  ┣ 📊 <b>Traffic :</b> Hari Ini: $BW_TODAY | Bulan: $BW_MONTH
  ┗ 🛡️ <b>Status :</b> $STATUS"
 
-curl -s -X POST "http://$MASTER_IP:5000/api/report" -d "name=$VPS_NAME" -d "data=$DATA" > /dev/null
+curl -s --connect-timeout 5 --max-time 10 -X POST "http://$MASTER_IP:5000/api/report" -d "name=$VPS_NAME" -d "data=$DATA" > /dev/null 2>&1
 
-if ! crontab -l 2>/dev/null | grep -q "wibu_node.sh"; then
-    (crontab -l 2>/dev/null; echo "* * * * * /root/wibu_node.sh $MASTER_IP \"$VPS_NAME\"") | crontab -
-fi
+CRON_ENTRY="* * * * * /root/wibu_node.sh $MASTER_IP '$VPS_NAME'"
+CRON_TEMP=$(mktemp)
+crontab -l 2>/dev/null | grep -v "wibu_node.sh" > "$CRON_TEMP"
+echo "$CRON_ENTRY" >> "$CRON_TEMP"
+crontab "$CRON_TEMP"
+rm -f "$CRON_TEMP"
