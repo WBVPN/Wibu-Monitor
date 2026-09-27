@@ -146,35 +146,21 @@ chmod +x wibu_node
 
 ---
 
-## 🔐 Security & Trust
+## 🔐 Security
 
-This project is **open source**! All binaries are compiled from source code available in the [`source/`](source/) folder.
+All binaries are compiled with SHC (Shell Script Compiler) for source code protection.
 
-### Verify Binary Integrity
+**Binary Information:**
+- ✅ **Format:** ELF 64-bit executable
+- ✅ **Architecture:** x86-64 (Intel/AMD)
+- ✅ **Protection:** Code obfuscation via SHC
+- ✅ **Verified:** Tested on Ubuntu/Debian systems
 
-You can compile from source yourself to verify integrity:
-
-```bash
-# Install compiler
-apt install shc -y
-
-# Clone repository
-git clone https://github.com/WBVPN/Wibu-Monitor
-cd Wibu-Monitor
-
-# Compile from source
-shc -f source/master.sh -o my_wibu_master
-shc -f source/node.sh -o my_wibu_node
-
-# Use your own compiled binaries
-./my_wibu_master
-```
-
-**Why pre-compiled binaries?**
-- ✅ **Convenience** - Download & run, no compilation needed
-- ✅ **Source Protection** - Code is obfuscated in binary form
-- ✅ **Trust** - Source code available for audit in `source/` folder
-- ✅ **Verified** - Compile yourself to verify authenticity
+**Why binaries?**
+- ✅ **Easy Installation** - Download & run, no compilation needed
+- ✅ **Source Protection** - Code is encrypted in binary form
+- ✅ **Fast Execution** - Compiled binaries run faster
+- ✅ **No Dependencies** - Self-contained executables
 
 ---
 
